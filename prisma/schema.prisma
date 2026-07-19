@@ -4,10 +4,296 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// USER
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  password      String?
+  image         String?
+
+  // Onboarding data
+  currentRole   String?
+  yearsOfExp    Int?
+  techStack     String[]
+  goal          String?
+  learningStyle String?
+  dailyHours    Float?
+  onboarded     Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  paths          Path[]
+  projects       Project[]
+  codingLogs     CodingLog[]
+  notes          Note[]
+  collaborations ProjectCollaborator[]
+  weeklyReports  WeeklyReport[]
+  embeddings     Embedding[]
+}
+
+// PATHS MODULE
+model Path {
+  id            String        @id @default(cuid())
+  title         String
+  description   String?
+  goal          String
+  masteryLevel  MasteryLevel
+  learningStyle LearningStyle
+  isPublic      Boolean       @default(false)
+  isAIGenerated Boolean       @default(false)
+
+  // Drift calculation fields
+  targetDate     DateTime
+  dailyHours     Float
+  driftDays      Int       @default(0)
+  lastActivityAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  milestones Milestone[]
+  notes      Note[]
+  embeddings Embedding[]
+}
+
+model Milestone {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  order       Int
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  pathId String
+  path   Path   @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  steps  Step[]
+}
+
+model Step {
+  id             String    @id @default(cuid())
+  title          String
+  description    String?
+  order          Int
+  isCompleted    Boolean   @default(false)
+  completedAt    DateTime?
+  estimatedHours Float?
+  resourceUrl    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  milestoneId String
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+}
+
+// PROJECTS MODULE
+model Project {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  isPublic    Boolean @default(false)
+
+  // Blueprint fields
+  problemStatement String?
+  techStack        String[]
+  architecture     String?
+
+  // Drift calculation fields
+  targetDate     DateTime
+  driftDays      Int       @default(0)
+  lastActivityAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userId        String
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phases        Phase[]
+  journal       JournalEntry[]
+  collaborators ProjectCollaborator[]
+  notes         Note[]
+  embeddings    Embedding[]
+}
+
+model Phase {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  order       Int
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  order       Int
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  phaseId String
+  phase   Phase  @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+}
+
+model JournalEntry {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  projectId  String
+  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  embeddings Embedding[]
+}
+
+// COLLABORATION
+model ProjectCollaborator {
+  id        String          @id @default(cuid())
+  role      CollaboratorRole @default(READ)
+  invitedAt DateTime        @default(now())
+  joinedAt  DateTime?
+
+  // Relations
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+}
+
+// CODING TRACKER
+model CodingLog {
+  id          String     @id @default(cuid())
+  problemName String
+  platform    Platform
+  difficulty  Difficulty
+  notes       String?
+  solvedAt    DateTime   @default(now())
+  createdAt   DateTime   @default(now())
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// NOTES
+model Note {
+  id        String   @id @default(cuid())
+  title     String?
+  content   String
+  isPublic  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pathId    String?
+  path      Path?    @relation(fields: [pathId], references: [id], onDelete: SetNull)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  embeddings Embedding[]
+}
+
+// WEEKLY REPORTS
+model WeeklyReport {
+  id          String   @id @default(cuid())
+  content     String
+  weekStart   DateTime
+  weekEnd     DateTime
+  driftScore  Int
+  generatedAt DateTime @default(now())
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// RAG — VECTOR EMBEDDINGS
+model Embedding {
+  id         String   @id @default(cuid())
+  content    String
+  vector     Unsupported("vector(1536)")
+  sourceType String
+  createdAt  DateTime @default(now())
+
+  // Relations
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pathId    String?
+  path      Path?         @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  noteId    String?
+  note      Note?         @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  journalId String?
+  journal   JournalEntry? @relation(fields: [journalId], references: [id], onDelete: Cascade)
+}
+
+// ENUMS
+enum MasteryLevel {
+  JOB_READY
+  SKILL_MASTERY
+  SENIOR_LEVEL
+}
+
+enum LearningStyle {
+  PROJECT_BASED
+  COURSE_BASED
+  READING
+  MIXED
+}
+
+enum CollaboratorRole {
+  READ
+  WRITE
+}
+
+enum Platform {
+  LEETCODE
+  CODEWARS
+  HACKERRANK
+  GREATFRONTEND
+  OTHER
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
 }
