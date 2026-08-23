@@ -1,19 +1,20 @@
-import {z} from "zod";
-import NextAuth from "next-auth";
+import NextAuth, { type Session, type User } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import {PrismaAdapter} from "@auth/prisma-adapter";
 import {prisma} from "@/lib/prisma";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials"
+import { authConfig } from "@/lib/auth.config"
+import { credentialsSchema } from "@/lib/validations/auth"
 
 import bcrypt from "bcryptjs";
 
-const credentialsSchema  = z.object({
-    email: z.email(),
-    password: z.string().min(8),
-})
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
-    adapter: PrismaAdapter(prisma),
+    ...authConfig,
+    // @auth/prisma-adapter types against @prisma/client's PrismaClient; Prisma 7's
+    // "prisma-client" generator (required for a custom output path) produces a
+    // structurally different type, so this cast is needed despite runtime compatibility.
+    adapter: PrismaAdapter(prisma as Parameters<typeof PrismaAdapter>[0]),
 
     session: {
         strategy: "jwt",
@@ -53,7 +54,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     ],
 
     callbacks: {
-        async session({ session, token }) {
+        ...authConfig.callbacks,
+        async session({ session, token }: { session: Session; token: JWT }) {
             if (token.sub) {
                 session.user.id = token.sub
             }
@@ -63,9 +65,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return session
         },
 
-        async jwt({ token, user }) {
-            if (user) {
-                token.onboarded = (user as any).onboarded
+        async jwt({ token, user }: { token: JWT; user?: User }) {
+            if (user && "onboarded" in user) {
+                token.onboarded = user.onboarded as boolean | undefined
             }
             return token
         },
