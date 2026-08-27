@@ -14,18 +14,10 @@ level visible and motivating.
 - NextAuth v5 configured with credentials + Google OAuth
 - Middleware created with Edge Runtime split
 - Login page built
-- Currently debugging: Prisma 7 + Next.js Edge Runtime conflict
-
-## Active problem to solve first
-
-Prisma 7 requires driver adapters and custom output path.
-Getting `@prisma/client-runtime-utils` module not found error.
-Need to fix prisma.ts, next.config.ts, and schema.prisma
-for full Prisma 7 compatibility.
 
 ## Stack
 
-- Next.js 14 + TypeScript (App Router)
+- Next.js 16 + TypeScript (App Router)
 - Tailwind CSS + shadcn/ui
 - PostgreSQL on Railway + Prisma 7 ORM
 - pgvector for RAG embeddings
@@ -43,14 +35,6 @@ for full Prisma 7 compatibility.
 - Zod schemas in src/lib/validations/
 - Route groups: (auth), (dashboard), (public)
 - Auth split: auth.config.ts (Edge safe) + auth.ts (Node.js)
-
-## Prisma 7 specifics
-
-- Provider: prisma-client (not prisma-client-js)
-- Output: ../src/generated/prisma (required in v7)
-- Requires driver adapter: @prisma/adapter-pg
-- Import: from "../generated/prisma/client"
-- PrismaClient must be instantiated with adapter
 
 ## Database
 
