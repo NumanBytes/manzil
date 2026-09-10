@@ -1,4 +1,5 @@
-import type { NextAuthConfig } from "next-auth"
+import type { NextAuthConfig, Session, User } from "next-auth"
+import type { JWT } from "next-auth/jwt"
 import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
 
@@ -35,6 +36,29 @@ export const authConfig: NextAuthConfig = {
         return Response.redirect(new URL("/onboarding", nextUrl))
       }
       return true
+    },
+    async session({ session, token }: { session: Session; token: JWT }) {
+      if (token.sub) {
+        session.user.id = token.sub
+      }
+      if (token.onboarded != undefined) {
+        session.user.onboarded = token.onboarded as boolean
+      }
+      return session
+    },
+    async jwt({ token, user, trigger, session }: {
+      token: JWT
+      user?: User
+      trigger?: "signIn" | "signUp" | "update"
+      session?: { onboarded?: boolean }
+    }) {
+      if (user && "onboarded" in user) {
+        token.onboarded = user.onboarded as boolean | undefined
+      }
+      if (trigger === "update" && session?.onboarded !== undefined) {
+        token.onboarded = session.onboarded
+      }
+      return token
     },
   },
 }

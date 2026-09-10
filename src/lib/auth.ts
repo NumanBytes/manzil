@@ -1,5 +1,4 @@
-import NextAuth, { type Session, type User } from "next-auth";
-import type { JWT } from "next-auth/jwt";
+import NextAuth from "next-auth";
 import {PrismaAdapter} from "@auth/prisma-adapter";
 import {prisma} from "@/lib/prisma";
 import Google from "next-auth/providers/google";
@@ -52,24 +51,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
         }),
     ],
-
-    callbacks: {
-        ...authConfig.callbacks,
-        async session({ session, token }: { session: Session; token: JWT }) {
-            if (token.sub) {
-                session.user.id = token.sub
-            }
-            if (token.onboarded != undefined) {
-                session.user.onboarded = token.onboarded as boolean
-            }
-            return session
-        },
-
-        async jwt({ token, user }: { token: JWT; user?: User }) {
-            if (user && "onboarded" in user) {
-                token.onboarded = user.onboarded as boolean | undefined
-            }
-            return token
-        },
-    },
 })
