@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { learningStyles } from "./onboarding"
+import { learningStyles, type LearningStyle } from "./onboarding"
 
 export const masteryLevels = ["JOB_READY", "SKILL_MASTERY", "SENIOR_LEVEL"] as const
 
@@ -40,3 +40,42 @@ export type CreatePathInput = z.infer<typeof createPathSchema>
 export type UpdatePathInput = z.infer<typeof updatePathSchema>
 export type ListPathsQuery = z.infer<typeof listPathsQuerySchema>
 export type MasteryLevel = (typeof masteryLevels)[number]
+
+/**
+ * A Path as it travels over HTTP.
+ *
+ * This is deliberately not Prisma's `Path` type. Two reasons:
+ *   1. `res.json()` serialises Date to an ISO string, so the client never
+ *      receives a Date. Reusing Prisma's type here would type a lie.
+ *   2. apps/web must not depend on @manzil/db, so the response shape needs a
+ *      home the frontend can import.
+ *
+ * apps/api maps its Prisma rows onto this in paths.mapper.ts, which is what
+ * keeps the two in step: if the schema changes, that mapper stops compiling.
+ */
+export type PathDto = {
+  id: string
+  title: string
+  description: string | null
+  goal: string
+  masteryLevel: MasteryLevel
+  learningStyle: LearningStyle
+  isPublic: boolean
+  isAIGenerated: boolean
+  /** ISO 8601 */
+  targetDate: string
+  dailyHours: number
+  driftDays: number
+  /** ISO 8601, or null if the path has never been worked on */
+  lastActivityAt: string | null
+  createdAt: string
+  updatedAt: string
+  userId: string
+}
+
+/**
+ * What a form submits, before Zod coerces it. `CreatePathInput` is the parsed
+ * output — `targetDate` there is a Date and `isPublic` is required — whereas a
+ * form only ever holds strings and may omit defaulted fields.
+ */
+export type CreatePathFormInput = z.input<typeof createPathSchema>
