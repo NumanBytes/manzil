@@ -100,7 +100,8 @@ export default function OnboardingPage() {
     }
 
     await update({ onboarded: true })
-    router.push("/dashboard")
+    // First thing after onboarding: name the destination.
+    router.push("/paths/new")
   }
 
   return (

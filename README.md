@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Manzil
 
-## Getting Started
+A personal growth OS for developers. Name the job you want; Manzil draws the path in small steps and hands you four things a day: one lesson, one interview problem, one spoken concept drill, and one build step.
 
-First, run the development server:
+## Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Install dependencies:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+   ```bash
+   pnpm install
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. Create `.env` with:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   | Variable | What it's for |
+   |---|---|
+   | `DATABASE_URL` | PostgreSQL with the `pgvector` extension (Railway, or `docker compose up` locally on port 5433) |
+   | `AUTH_SECRET` | NextAuth secret: `npx auth secret` |
+   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google sign-in |
+   | `ANTHROPIC_API_KEY` | Claude, server side only: drawing paths, splitting steps, writing lessons, drill model answers and the weekly read |
 
-## Learn More
+3. Create the tables and load the catalog (75 problems, 36 drill topics, the 65-lesson syllabus). Both commands are safe to re-run:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   pnpm prisma db push
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   pnpm prisma db seed
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. Run it:
 
-## Deploy on Vercel
+   ```bash
+   pnpm dev
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Without `ANTHROPIC_API_KEY` everything except the AI features works; those show "AI isn't set up on this server yet."
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## How the product works
+
+- **Today** (`/dashboard`) assembles the day: the next lesson, a drill (most overdue review, else a new topic), a problem (on Sundays, a redo of one you couldn't solve), and the current step of your main path. Each finished item sets a flag on `DayActivity` for the user's local day.
+- **Journey** (`/paths`): milestones and steps. Pace comes from the hours of steps completed over the last 28 days; "lands on" and "days behind" come from `src/lib/pace.ts`.
+- **New path** (`/paths/new`): seven questions → `POST /api/ai/path-draft` → a `DRAFT` path → "Start this path" makes it the main path.
+- **Practice** (`/practice`): the 30-minute problem timer logs to `CodingLog`; drill scores 1–4 schedule the topic back in 1/3/7/14 days (`TopicReview`).
+- **Read** (`/library`): one lesson arrives per day from sign-up. A lesson's body is written by Claude the first time anyone opens it, then cached in `Lesson.content`.
+- **Progress** (`/progress`): readiness out of 100 (`src/lib/readiness.ts`): problem solving 35, concepts 35, mock interviews 20 (not built yet, always 0), consistency 10.
+
+## Layout
+
+- `src/actions/`: server actions (all mutations; every one checks ownership)
+- `src/app/api/ai/`: the Claude routes
+- `src/lib/data/`: read queries per page
+- `src/lib/ai/`: Claude client and prompts (structured outputs, validated with Zod)
+- `src/lib/validations/`: Zod schemas
+- `prisma/seed-data.ts`: the problem list, drill topics and syllabus

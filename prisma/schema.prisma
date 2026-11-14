@@ -14,11 +14,14 @@ datasource db {
 
 // USER
 model User {
-  id            String   @id @default(cuid())
-  name          String
-  email         String   @unique
-  password      String?
-  image         String?
+  id              String    @id @default(cuid())
+  name            String?
+  email           String    @unique
+  emailVerified   DateTime?
+  password        String?
+  image           String?
+  timezone        String    @default("UTC")
+  courseStartedAt DateTime  @default(now())
 
   // Onboarding data
   currentRole   String?
@@ -29,8 +32,8 @@ model User {
   dailyHours    Float?
   onboarded     Boolean  @default(false)
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   paths          Path[]
@@ -40,6 +43,38 @@ model User {
   collaborations ProjectCollaborator[]
   weeklyReports  WeeklyReport[]
   embeddings     Embedding[]
+  accounts       Account[]
+  dayActivities  DayActivity[]
+  topicReviews   TopicReview[]
+  lessonReads    LessonRead[]
+}
+
+// AUTH.JS ADAPTER (required for Google sign-in through PrismaAdapter)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 // PATHS MODULE
@@ -52,6 +87,10 @@ model Path {
   learningStyle LearningStyle
   isPublic      Boolean       @default(false)
   isAIGenerated Boolean       @default(false)
+  status        PathStatus    @default(ACTIVE)
+  isMain        Boolean       @default(false)
+  weeklyHours   Float         @default(7)
+  answers       Json?
 
   // Drift calculation fields
   targetDate     DateTime
@@ -96,6 +135,9 @@ model Step {
   completedAt    DateTime?
   estimatedHours Float?
   resourceUrl    String?
+  kind           StepKind  @default(BUILD)
+  doneLooksLike  String?
+  resourceNote   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -103,14 +145,28 @@ model Step {
   // Relations
   milestoneId String
   milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  subtasks    SubTask[]
+}
+
+model SubTask {
+  id          String    @id @default(cuid())
+  title       String
+  minutes     Int
+  order       Int
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+
+  stepId String
+  step   Step   @relation(fields: [stepId], references: [id], onDelete: Cascade)
 }
 
 // PROJECTS MODULE
 model Project {
-  id          String  @id @default(cuid())
+  id          String        @id @default(cuid())
   title       String
   description String?
-  isPublic    Boolean @default(false)
+  isPublic    Boolean       @default(false)
+  status      ProjectStatus @default(BUILDING)
 
   // Blueprint fields
   problemStatement String?
@@ -182,9 +238,9 @@ model JournalEntry {
 
 // COLLABORATION
 model ProjectCollaborator {
-  id        String          @id @default(cuid())
+  id        String           @id @default(cuid())
   role      CollaboratorRole @default(READ)
-  invitedAt DateTime        @default(now())
+  invitedAt DateTime         @default(now())
   joinedAt  DateTime?
 
   // Relations
@@ -198,17 +254,102 @@ model ProjectCollaborator {
 
 // CODING TRACKER
 model CodingLog {
-  id          String     @id @default(cuid())
+  id          String          @id @default(cuid())
   problemName String
   platform    Platform
   difficulty  Difficulty
   notes       String?
-  solvedAt    DateTime   @default(now())
-  createdAt   DateTime   @default(now())
+  solvedAt    DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+  outcome     ProblemOutcome?
+  minutes     Int?
+  redoDueAt   DateTime?
+  redoneAt    DateTime?
 
   // Relations
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemId String?
+  problem   Problem? @relation(fields: [problemId], references: [id], onDelete: SetNull)
+}
+
+// PRACTICE CATALOG (seeded) + PER-USER STATE
+model Problem {
+  id         String      @id @default(cuid())
+  order      Int         @unique
+  title      String
+  slug       String      @unique
+  url        String
+  platform   Platform    @default(LEETCODE)
+  difficulty Difficulty
+  pattern    String
+  logs       CodingLog[]
+}
+
+model Topic {
+  id           String        @id @default(cuid())
+  slug         String        @unique
+  track        String
+  title        String
+  prompt       String
+  modelAnswer  String?
+  lessonNumber Int?
+  order        Int
+  reviews      TopicReview[]
+}
+
+model TopicReview {
+  id           String   @id @default(cuid())
+  score        Int
+  dueAt        DateTime
+  lastScoredAt DateTime
+  timesDrilled Int      @default(1)
+  history      Json     @default("[]")
+
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicId String
+  topic   Topic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId])
+}
+
+// COURSE (syllabus seeded, lesson bodies generated once and cached)
+model Lesson {
+  id          String       @id @default(cuid())
+  number      Int          @unique
+  module      String
+  title       String
+  content     Json?
+  generatedAt DateTime?
+  reads       LessonRead[]
+}
+
+model LessonRead {
+  id     String   @id @default(cuid())
+  readAt DateTime @default(now())
+
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+// ONE ROW PER USER PER LOCAL DAY: the four things
+model DayActivity {
+  id     String  @id @default(cuid())
+  day    String // YYYY-MM-DD in the user's timezone
+  lesson Boolean @default(false)
+  solve  Boolean @default(false)
+  drill  Boolean @default(false)
+  build  Boolean @default(false)
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
 }
 
 // NOTES
@@ -221,12 +362,12 @@ model Note {
   updatedAt DateTime @updatedAt
 
   // Relations
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pathId    String?
-  path      Path?    @relation(fields: [pathId], references: [id], onDelete: SetNull)
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pathId     String?
+  path       Path?       @relation(fields: [pathId], references: [id], onDelete: SetNull)
+  projectId  String?
+  project    Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
   embeddings Embedding[]
 }
 
@@ -246,11 +387,11 @@ model WeeklyReport {
 
 // RAG — VECTOR EMBEDDINGS
 model Embedding {
-  id         String   @id @default(cuid())
+  id         String                      @id @default(cuid())
   content    String
   vector     Unsupported("vector(1536)")
   sourceType String
-  createdAt  DateTime @default(now())
+  createdAt  DateTime                    @default(now())
 
   // Relations
   userId    String
@@ -296,4 +437,27 @@ enum Difficulty {
   EASY
   MEDIUM
   HARD
+}
+
+enum PathStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum StepKind {
+  LEARN
+  BUILD
+  PROVE
+}
+
+enum ProjectStatus {
+  BUILDING
+  LIVE
+}
+
+enum ProblemOutcome {
+  SOLVED
+  HINT
+  FAILED
 }

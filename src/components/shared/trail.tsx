@@ -28,7 +28,9 @@ export function Trail({ nodes, plan, onHero = false, labels = true, flag = true,
   let hereIdx = nodes.findIndex((x) => x.state === "here")
   if (hereIdx < 0) hereIdx = nodes.map((x) => x.state).lastIndexOf("done")
   const walked = hereIdx < 0 ? 0 : (hereIdx / Math.max(1, last)) * 100
-  const hasPlan = typeof plan === "number" && plan >= 0 && plan <= 1
+  const herePos = hereIdx < 0 ? 0 : hereIdx / Math.max(1, last)
+  // Skip the plan tick when it would sit on top of the pin: the caption already says "on pace".
+  const hasPlan = typeof plan === "number" && plan >= 0 && plan <= 1 && Math.abs(plan - herePos) > 0.04
 
   const c = onHero
     ? {
@@ -94,7 +96,8 @@ export function Trail({ nodes, plan, onHero = false, labels = true, flag = true,
               {isHere && labels && (
                 <span
                   className={cn(
-                    "absolute left-0 top-0 -translate-x-1/2 text-[11px] font-bold tracking-[0.06em] uppercase whitespace-nowrap",
+                    "absolute left-0 top-0 text-[11px] font-bold tracking-[0.06em] uppercase whitespace-nowrap",
+                    i === 0 ? "-translate-x-2.5" : i === last ? "-translate-x-[calc(100%-10px)]" : "-translate-x-1/2",
                     c.hereInk
                   )}
                 >

@@ -3,7 +3,27 @@ import { buttonVariants } from "@/components/ui/button"
 import { PublicHeader } from "@/components/layout/public-header"
 import { Card, Eyebrow, Meter } from "@/components/shared/primitives"
 import { Trail } from "@/components/shared/trail"
-import { MAIN_PATH, MAIN_STOPS, READINESS } from "@/lib/sample-data"
+import type { TrailNode } from "@/components/shared/trail"
+
+// Illustration only: an example path and score on the signed-out home page.
+const EXAMPLE_PATH = { title: "Senior Full Stack: Next.js + NestJS + PostgreSQL", planAt: 0.42 }
+const EXAMPLE_STOPS: TrailNode[] = [
+  { label: "NestJS foundations", state: "done" },
+  { label: "PostgreSQL and Prisma", state: "here" },
+  { label: "Auth and security", state: "ahead" },
+  { label: "Docker and AWS", state: "ahead" },
+  { label: "Full Stack Engineer", state: "ahead" },
+]
+const EXAMPLE_READINESS = {
+  score: 41,
+  band: "Building",
+  parts: [
+    { name: "Problem solving", score: 14, max: 35 },
+    { name: "Concepts", score: 18, max: 35 },
+    { name: "Mock interviews", score: 0, max: 20 },
+    { name: "Consistency", score: 9, max: 10 },
+  ],
+}
 
 const FOUR = [
   { eyebrow: "Read · 5 min", title: "One lesson", body: "A plain-words lesson from a 240-day course, built on what you read yesterday." },
@@ -50,10 +70,10 @@ export default function Home() {
             </div>
             <div className="flex flex-col gap-3.5 rounded-card bg-hero-panel px-7 pt-6 pb-5">
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
-                <span className="font-heading text-[17px] font-bold">{MAIN_PATH.title}</span>
-                <span className="text-[13px] text-hero-muted">a path on Manzil</span>
+                <span className="font-heading text-[17px] font-bold">{EXAMPLE_PATH.title}</span>
+                <span className="text-[13px] text-hero-muted">an example path</span>
               </div>
-              <Trail nodes={MAIN_STOPS} plan={MAIN_PATH.planAt} onHero />
+              <Trail nodes={EXAMPLE_STOPS} plan={EXAMPLE_PATH.planAt} onHero />
               <p className="m-0 text-sm text-hero-muted">
                 Solid is walked. Dashed is ahead. The tick is where the plan says you should be. The orange pin is you.
                 The gap between them is the only number that matters.
@@ -95,10 +115,10 @@ export default function Home() {
             </div>
             <Card as="div" className="flex-[999_1_420px] gap-3.5 px-7 py-6">
               <div className="flex items-baseline gap-3">
-                <span className="font-heading text-[44px] leading-none font-bold">{READINESS.score}</span>
-                <span className="text-muted-foreground">out of 100 · {READINESS.band}</span>
+                <span className="font-heading text-[44px] leading-none font-bold">{EXAMPLE_READINESS.score}</span>
+                <span className="text-muted-foreground">out of 100 · {EXAMPLE_READINESS.band}</span>
               </div>
-              {READINESS.parts.map((p) => (
+              {EXAMPLE_READINESS.parts.map((p) => (
                 <div key={p.name} className="flex flex-col gap-[5px]">
                   <div className="flex justify-between gap-2 text-sm">
                     <span className="font-semibold">{p.name}</span>

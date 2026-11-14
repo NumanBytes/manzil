@@ -14,6 +14,9 @@ level visible and motivating.
 - NextAuth v5 configured with credentials + Google OAuth
 - Middleware created with Edge Runtime split
 - Login page built
+- v3 design implemented (Today, Journey, Practice, Read, Progress, New path)
+- Backend: server actions, Claude API routes (src/app/api/ai), seed catalog,
+  readiness + pace calculations. Mock interviews not built yet.
 
 ## Stack
 
