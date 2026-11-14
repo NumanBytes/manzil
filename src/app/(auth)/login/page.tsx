@@ -4,6 +4,8 @@ import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { AuthHeader } from "@/components/layout/public-header"
+import { Card, PageHeading } from "@/components/shared/primitives"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -40,89 +42,67 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md space-y-8 p-8">
-        
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-foreground">Manzil</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Continue your journey
-          </p>
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <AuthHeader />
+      <main className="mx-auto box-border flex w-full max-w-[440px] flex-1 flex-col gap-5 px-4 pt-6 pb-18 md:px-6 md:pt-10">
+        <div className="flex flex-col gap-1.5">
+          <PageHeading>Welcome back.</PageHeading>
+          <p className="m-0 text-muted-foreground">Your trail is where you left it.</p>
         </div>
 
-        {/* Error message */}
-        {error && (
-          <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
-            {error}
-          </div>
-        )}
+        <Card as="form" onSubmit={handleSubmit} className="gap-4 p-[18px] md:p-7">
+          <Button type="button" variant="outline" size="lg" className="w-full" onClick={handleGoogleSignIn}>
+            Continue with Google
+          </Button>
 
-        {/* Credentials form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+          <div className="flex items-center gap-3 text-[13px] text-muted-foreground">
+            <span className="flex-1 border-t border-border" />
+            or with email
+            <span className="flex-1 border-t border-border" />
+          </div>
+
+          {error && (
+            <div role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
-              placeholder="numan@example.com"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
-              placeholder="••••••••"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={loading}
-          >
+          <Button type="submit" size="lg" className="w-full" disabled={loading}>
             {loading ? "Signing in..." : "Sign in"}
           </Button>
-        </form>
+        </Card>
 
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
-              or
-            </span>
-          </div>
-        </div>
-
-        {/* Google sign in */}
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={handleGoogleSignIn}
-        >
-          Continue with Google
-        </Button>
-
-        {/* Sign up link */}
-        <p className="text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-primary hover:underline">
-            Sign up
+        <p className="m-0 text-center text-sm text-muted-foreground">
+          New here?{" "}
+          <Link href="/signup" className="font-semibold text-link underline hover:text-foreground">
+            Create your manzil
           </Link>
         </p>
-
-      </div>
+      </main>
     </div>
   )
 }
